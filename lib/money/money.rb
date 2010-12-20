@@ -860,11 +860,13 @@ class Money
       symbol_value = symbol
     end
 
+    symbol_format = currency.format
+
     formatted = case rules[:no_cents]
                 when true
-                  "#{symbol_value}#{self.to_s.to_i}"
+                  symbol_format.gsub("%u", symbol_value).gsub("%n", "#{self.to_s.to_i}")
                 else
-                  "#{symbol_value}#{self.to_s}"
+                  symbol_format.gsub("%u", symbol_value).gsub("%n", "#{self}")
                 end
     if rules.has_key?(:separator) and rules[:separator] and
       rules[:separator] != separator
