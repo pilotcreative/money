@@ -148,13 +148,13 @@ class Money
       #   bank.get_rate("CAD", "USD") #=> 0.803115
       def get_rate(from, to, date = Date.today)
         @mutex.synchronize do
-          (@rates[rate_key_for(from, to)].to_a || []).min do |a, b|
+          (@rates[rate_key_for(from, to)].to_a.min do |a, b|
             da = (Date.parse(a[0]) - date.to_date).to_i
             da = 1+1.0/da if da < 0
             db = (Date.parse(b[0]) - date.to_date).to_i
             db = 1+1.0/db if db < 0
             da == db ? 0 : (da < db ? -1 : 1)
-          end[1]
+          end || [])[1]
         end
       end
 

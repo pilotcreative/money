@@ -15,6 +15,11 @@ class Money
   # @return [Currency]
   attr_reader :currency
 
+  # Date associated with this amount of money (used for historical currency exchange)
+  #
+  # @return [Date]
+  attr_reader :date
+
   # The +Money::Bank+ based object used to perform currency exchanges with.
   #
   # @return [Money::Bank::*]
@@ -36,6 +41,12 @@ class Money
     #
     # @return [Money::Currency]
     attr_accessor :default_currency
+
+    # Default date used when +Money.new+ is called without explicit date argument.
+    # The default value is Date.today. The value must be a valid +Date+ instance.
+    #
+    # @return [Date]
+    attr_accessor :default_date
   end
 
   # Set the default bank for creating new +Money+ objects.
@@ -43,6 +54,9 @@ class Money
 
   # Set the default currency for creating new +Money+ object.
   self.default_currency = Currency.new("USD")
+
+  # Set the default date for creating new +Money+ object.
+  self.default_date = Date.today
 
   # Create a new money object with value 0.
   #
@@ -358,8 +372,8 @@ class Money
   #
   # @example
   #   Money.add_rate("USD", "CAD", 1.25) #=> 1.25
-  def self.add_rate(from_currency, to_currency, rate)
-    Money.default_bank.add_rate(from_currency, to_currency, rate)
+  def self.add_rate(from_currency, to_currency, rate, date = Date.today)
+    Money.default_bank.add_rate(from_currency, to_currency, rate, date)
   end
 
 
@@ -385,10 +399,11 @@ class Money
   #
   # @see Money.new_with_dollars
   #
-  def initialize(cents, currency = Money.default_currency, bank = Money.default_bank)
+  def initialize(cents, currency = Money.default_currency, bank = Money.default_bank, date = Money.default_date)
     @cents = cents.round.to_i
     @currency = Currency.wrap(currency)
     @bank = bank
+    @date = date
   end
 
   # Returns the value of the money in dollars,
@@ -936,7 +951,7 @@ class Money
   #   Money.new(2000, "USD").exchange_to(Currency.new("EUR"))
   def exchange_to(other_currency)
     other_currency = Currency.wrap(other_currency)
-    @bank.exchange_with(self, other_currency)
+    @bank.exchange_with(self, other_currency, date)
   end
 
   # Receive a money object with the same amount as the current Money object
