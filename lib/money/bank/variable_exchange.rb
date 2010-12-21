@@ -48,6 +48,7 @@ class Money
       # @param [Money] from The +Money+ object to exchange.
       # @param [Currency, String, Symbol] to_currency The currency to exchange
       #  to.
+      # @param [Date] at the rate of which the exchange should be done.
       #
       # @yield [n] Optional block to use when rounding after exchanging one
       #  currency for another.
