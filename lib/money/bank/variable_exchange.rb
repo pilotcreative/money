@@ -72,10 +72,10 @@ class Money
       #
       #   # Exchange 100 CAD to USD:
       #   bank.exchange_with(c2, "USD") #=> #<Money @cents=803115>
-      def exchange_with(from, to_currency, &block)
+      def exchange_with(from, to_currency, date = Date.today, &block)
         return from if same_currency?(from.currency, to_currency)
 
-        rate = get_rate(from.currency, to_currency)
+        rate = get_rate(from.currency, to_currency, date)
         unless rate
           raise UnknownRate, "No conversion rate known for '#{from.currency.iso_code}' -> '#{to_currency}'"
         end
@@ -107,8 +107,8 @@ class Money
       #   bank = Money::Bank::VariableExchange.new
       #   bank.add_rate("USD", "CAD", 1.24515)
       #   bank.add_rate("CAD", "USD", 0.803115)
-      def add_rate(from, to, rate)
-        set_rate(from, to, rate)
+      def add_rate(from, to, rate, date = Date.today)
+        set_rate(from, to, rate, date)
       end
 
       # Set the rate for the given currencies. Uses +Mutex+ to synchronize data
@@ -124,8 +124,11 @@ class Money
       #   bank = Money::Bank::VariableExchange.new
       #   bank.set_rate("USD", "CAD", 1.24515)
       #   bank.set_rate("CAD", "USD", 0.803115)
-      def set_rate(from, to, rate)
-        @mutex.synchronize { @rates[rate_key_for(from, to)] = rate }
+      def set_rate(from, to, rate, date = Date.today)
+        @mutex.synchronize do
+          @rates[rate_key_for(from, to)] ||= {}
+          @rates[rate_key_for(from, to)][date.to_date.to_s] = rate
+        end
       end
 
       # Retrieve the rate for the given currencies. Uses +Mutex+ to synchronize
@@ -143,8 +146,16 @@ class Money
       #
       #   bank.get_rate("USD", "CAD") #=> 1.24515
       #   bank.get_rate("CAD", "USD") #=> 0.803115
-      def get_rate(from, to)
-        @mutex.synchronize { @rates[rate_key_for(from, to)] }
+      def get_rate(from, to, date = Date.today)
+        @mutex.synchronize do
+          (@rates[rate_key_for(from, to)].to_a || []).min do |a, b|
+            da = (Date.parse(a[0]) - date.to_date).to_i
+            da = 1+1.0/da if da < 0
+            db = (Date.parse(b[0]) - date.to_date).to_i
+            db = 1+1.0/db if db < 0
+            da == db ? 0 : (da < db ? -1 : 1)
+          end[1]
+        end
       end
 
       # Return the known rates as a string in the format specified. If +file+
